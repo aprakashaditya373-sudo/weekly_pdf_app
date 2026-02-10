@@ -149,12 +149,7 @@ if generate:
     registered_no_mid = weekly_df["mid"].isna().sum()
 
     # Registered users with MID mapped
-    registered_with_mid_mapped = int(
-        table1_df.loc[
-            table1_df["Committees"] == "Total CUBS_COMMITTEE",
-            "Registered"
-        ].values[0]
-    )
+    registered_with_mid_mapped = total_members_registered - registered_no_mid
 
     # Normalize weekly MID exactly same as preprocessing
     def _norm_mid_local(x):
