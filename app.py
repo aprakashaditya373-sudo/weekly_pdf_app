@@ -178,7 +178,7 @@ if generate:
     table2 = Table(table2_data, repeatRows=1)
 
     table2.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.darkgoldenrod),   # header bg
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f1c232")),   # header bg
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),           # header text
         ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
