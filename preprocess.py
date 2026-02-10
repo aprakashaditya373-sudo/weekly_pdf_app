@@ -15,9 +15,60 @@ def run_preprocessing(fixed_df: pd.DataFrame,
     if "ROLE" not in fixed_df.columns:
         raise ValueError("ROLE column not found in fixed file")
 
+    if "MIMD" not in fixed_df.columns:
+        raise ValueError("MIMD column not found in fixed file")
+
+    if "mid" not in weekly_df.columns:
+        raise ValueError("mid column not found in weekly file")
+
+    # ------------------------------------------------
+    # Helper : normalize MID / MIMD
+    # ------------------------------------------------
+    def normalize_mid(x):
+        if pd.isna(x):
+            return None
+
+        x = str(x).strip()
+
+        # remove existing #
+        if x.startswith("#"):
+            x = x[1:]
+
+        # keep only digits
+        x = "".join(c for c in x if c.isdigit())
+
+        if len(x) == 0:
+            return None
+
+        # pad with zeros in front to make at least 8 digits
+        if len(x) < 8:
+            x = x.zfill(8)
+
+        # finally add #
+        return "#" + x
+
+    # ------------------------------------------------
+    # Prepare fixed file
+    # ------------------------------------------------
     df = fixed_df.copy()
+
     df["CMLEVEL"] = df["CMLEVEL"].astype(str).str.strip()
     df["ROLE"] = df["ROLE"].astype(str).str.strip()
+
+    df["MIMD_norm"] = df["MIMD"].apply(normalize_mid)
+
+    # ------------------------------------------------
+    # Prepare weekly file
+    # ------------------------------------------------
+    weekly = weekly_df.copy()
+    weekly["mid_norm"] = weekly["mid"].apply(normalize_mid)
+
+    registered_mids = set(weekly["mid_norm"].dropna())
+
+    # ------------------------------------------------
+    # Mark registered rows in fixed file
+    # ------------------------------------------------
+    df["is_registered"] = df["MIMD_norm"].isin(registered_mids)
 
     # ==========================================================
     # TABLE 1 – Committees (page 1)
@@ -38,24 +89,36 @@ def run_preprocessing(fixed_df: pd.DataFrame,
 
     counts = df["CMLEVEL"].value_counts().to_dict()
 
+    registered_counts_1 = (
+        df[df["is_registered"]]
+        .groupby("CMLEVEL")
+        .size()
+        .to_dict()
+    )
+
     rows_1 = []
     total_strength_sum = 0
+    total_registered_sum = 0
 
     for committee in committee_order:
+
         total_strength = counts.get(committee, 0)
+        registered_cnt = registered_counts_1.get(committee, 0)
+
         total_strength_sum += total_strength
+        total_registered_sum += registered_cnt
 
         rows_1.append({
             "Committees": committee,
             "Total Strength": total_strength,
-            "Registered": "",
+            "Registered": registered_cnt,
             "%": ""
         })
 
     rows_1.append({
         "Committees": "Total CUBS_COMMITTEE",
         "Total Strength": total_strength_sum,
-        "Registered": "",
+        "Registered": total_registered_sum,
         "%": ""
     })
 
@@ -140,16 +203,25 @@ def run_preprocessing(fixed_df: pd.DataFrame,
         .to_dict()
     )
 
+    registered_counts_2 = (
+        df[df["is_registered"]]
+        .groupby(["CMLEVEL", "ROLE"])
+        .size()
+        .to_dict()
+    )
+
     rows_2 = []
 
     for cmlevel, role in ordered_rows:
+
         total_members = grouped_counts.get((cmlevel, role), 0)
+        registered_members = registered_counts_2.get((cmlevel, role), 0)
 
         rows_2.append({
             "CM LEVEL": cmlevel,
             "ROLE": role,
             "Total Cadre Members": total_members,
-            "Registered": "",
+            "Registered": registered_members,
             "% Registered": ""
         })
 
