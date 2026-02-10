@@ -13,7 +13,8 @@ from reportlab.platypus import (
     Spacer,
     PageBreak
 )
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER
 from reportlab.lib import colors
 
 from preprocess import run_preprocessing
@@ -83,7 +84,7 @@ if generate:
         st.stop()
 
     # -----------------------------
-    # Preprocessing  (CHANGED)
+    # Preprocessing
     # -----------------------------
     try:
         table1_df, table2_df = run_preprocessing(fixed_df, weekly_df)
@@ -93,7 +94,7 @@ if generate:
         st.stop()
 
     # -----------------------------
-    # Empty check  (CHANGED)
+    # Empty check
     # -----------------------------
     if table1_df is None or table1_df.empty:
         st.warning("Table 1 is empty. No PDF generated.")
@@ -120,16 +121,25 @@ if generate:
     styles = getSampleStyleSheet()
     elements = []
 
+    # -----------------------------
+    # Centered title  (ONLY CHANGE)
+    # -----------------------------
+    center_title_style = ParagraphStyle(
+        name="CenterTitle",
+        parent=styles["Heading2"],
+        alignment=TA_CENTER
+    )
+
     title = Paragraph(
         "Analysis of members registered in MyTDP App",
-        styles["Heading2"]
+        center_title_style
     )
 
     elements.append(title)
     elements.append(Spacer(1, 12))
 
     # ==================================================
-    # TABLE 1  (NEW)
+    # TABLE 1
     # ==================================================
     elements.append(Paragraph(
         "Committees – Total Strength",
@@ -142,7 +152,8 @@ if generate:
     table1 = Table(table1_data, repeatRows=1)
 
     table1.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.darkgoldenrod),   # header bg
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),           # header text
         ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
@@ -154,7 +165,7 @@ if generate:
     elements.append(PageBreak())
 
     # ==================================================
-    # TABLE 2  (NEW)
+    # TABLE 2
     # ==================================================
     elements.append(Paragraph(
         "CM LEVEL ROLE – Total Cadre Members",
@@ -167,7 +178,8 @@ if generate:
     table2 = Table(table2_data, repeatRows=1)
 
     table2.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.darkgoldenrod),   # header bg
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),           # header text
         ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
