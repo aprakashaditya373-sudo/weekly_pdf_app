@@ -55,7 +55,7 @@ def run_preprocessing(fixed_df: pd.DataFrame,
     df["CMLEVEL"] = df["CMLEVEL"].astype(str).str.strip()
     df["ROLE"] = df["ROLE"].astype(str).str.strip()
 
-    df["MIMD_norm"] = df["MIMD"].apply(normalize_mid)
+    df["MIMD_norm"] = df["MIMD"]
 
     # ------------------------------------------------
     # Prepare weekly file
