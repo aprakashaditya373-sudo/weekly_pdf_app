@@ -192,8 +192,7 @@ def run_preprocessing(fixed_df: pd.DataFrame,
         ("Parliament", "Official Spokesperson"),
         ("Parliament", "Treasurer"),
         ("Parliament", "Office Secretary"),
-        ("Parliament", "Media  Coordinator
-"),
+        ("Parliament", "Media  Coordinator"),
         ("Parliament", "Social Media Coordinator"),
 
         ("Assembly", "President"),
