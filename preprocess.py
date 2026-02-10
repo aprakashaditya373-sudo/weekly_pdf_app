@@ -6,9 +6,6 @@ import pandas as pd
 def run_preprocessing(fixed_df: pd.DataFrame,
                        weekly_df: pd.DataFrame):
 
-    # ------------------------------------------------
-    # Validate columns
-    # ------------------------------------------------
     if "CMLEVEL" not in fixed_df.columns:
         raise ValueError("CMLEVEL column not found in fixed file")
 
@@ -24,38 +21,33 @@ def run_preprocessing(fixed_df: pd.DataFrame,
     # ------------------------------------------------
     # Normalize ONLY weekly mid
     # ------------------------------------------------
-
     def normalize_weekly_mid(x):
 
         if pd.isna(x):
             return None
 
-        # ---- FIX: handle float mids safely ----
-        # Example: 12345678.0  ->  "12345678"
+        # important fix for float mids
         if isinstance(x, float):
             x = str(int(x))
         else:
             x = str(x).strip()
 
-        # remove #
         if x.startswith("#"):
             x = x[1:]
 
-        # keep only digits
         x = "".join(c for c in x if c.isdigit())
 
         if len(x) == 0:
             return None
 
-        # MIMD format is 9 length -> '#' + 8 digits
-        # so make digits length = 8
+        # MIMD format is # + 8 digits
         if len(x) < 8:
             x = x.zfill(8)
 
         return "#" + x
 
     # ------------------------------------------------
-    # Prepare fixed file (NO normalization on MIMD)
+    # Prepare fixed file (MIMD as-is)
     # ------------------------------------------------
     df = fixed_df.copy()
 
@@ -64,7 +56,7 @@ def run_preprocessing(fixed_df: pd.DataFrame,
     df["MIMD"] = df["MIMD"].astype(str).str.strip()
 
     # ------------------------------------------------
-    # Prepare weekly file (ONLY mid normalized)
+    # Prepare weekly file
     # ------------------------------------------------
     weekly = weekly_df.copy()
     weekly["mid_norm"] = weekly["mid"].apply(normalize_weekly_mid)
@@ -72,12 +64,12 @@ def run_preprocessing(fixed_df: pd.DataFrame,
     registered_mids = set(weekly["mid_norm"].dropna())
 
     # ------------------------------------------------
-    # Registered flag (match with fixed MIMD AS-IS)
+    # Registered flag
     # ------------------------------------------------
     df["is_registered"] = df["MIMD"].isin(registered_mids)
 
     # ==========================================================
-    # TABLE 1 – Committees (page 1)
+    # TABLE 1 – Committees
     # ==========================================================
 
     committee_order = [
@@ -114,18 +106,28 @@ def run_preprocessing(fixed_df: pd.DataFrame,
         total_strength_sum += total_strength
         total_registered_sum += registered_cnt
 
+        if total_strength > 0:
+            pct = f"{(registered_cnt / total_strength) * 100:.1f}%"
+        else:
+            pct = "0.0%"
+
         rows_1.append({
             "Committees": committee,
             "Total Strength": total_strength,
             "Registered": registered_cnt,
-            "%": ""
+            "%": pct
         })
+
+    if total_strength_sum > 0:
+        total_pct = f"{(total_registered_sum / total_strength_sum) * 100:.1f}%"
+    else:
+        total_pct = "0.0%"
 
     rows_1.append({
         "Committees": "Total CUBS_COMMITTEE",
         "Total Strength": total_strength_sum,
         "Registered": total_registered_sum,
-        "%": ""
+        "%": total_pct
     })
 
     table_1 = pd.DataFrame(
@@ -134,7 +136,7 @@ def run_preprocessing(fixed_df: pd.DataFrame,
     )
 
     # ==========================================================
-    # TABLE 2 – CM LEVEL ROLE (page 2 & 3)
+    # TABLE 2 – CM LEVEL ROLE
     # ==========================================================
 
     ordered_rows = [
@@ -223,12 +225,17 @@ def run_preprocessing(fixed_df: pd.DataFrame,
         total_members = grouped_counts.get((cmlevel, role), 0)
         registered_members = registered_counts_2.get((cmlevel, role), 0)
 
+        if total_members > 0:
+            pct = f"{(registered_members / total_members) * 100:.1f}%"
+        else:
+            pct = "0.0%"
+
         rows_2.append({
             "CM LEVEL": cmlevel,
             "ROLE": role,
             "Total Cadre Members": total_members,
             "Registered": registered_members,
-            "% Registered": ""
+            "% Registered": pct
         })
 
     table_2 = pd.DataFrame(
