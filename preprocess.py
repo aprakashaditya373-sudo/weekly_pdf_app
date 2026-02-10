@@ -146,8 +146,8 @@ def run_preprocessing(fixed_df: pd.DataFrame,
         total_members = grouped_counts.get((cmlevel, role), 0)
 
         rows_2.append({
-            "CM LEVEL": f"{cmlevel}",
-            "ROLE": f"{role}",
+            "CM LEVEL": cmlevel,
+            "ROLE": role,
             "Total Cadre Members": total_members,
             "Registered": "",
             "% Registered": ""
