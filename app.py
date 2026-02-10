@@ -2,7 +2,6 @@
 
 import streamlit as st
 import pandas as pd
-import os
 from io import BytesIO
 
 from reportlab.lib.pagesizes import A4
@@ -13,28 +12,28 @@ from reportlab.lib import colors
 from preprocess import run_preprocessing
 
 
-# -----------------------------
-# Page config
-# -----------------------------
 st.set_page_config(page_title="Weekly Report Generator", layout="centered")
 
 st.title("Weekly Report Generator")
-st.write("Upload the weekly file and generate the final PDF.")
 
+st.write("Upload the fixed master file and the weekly file to generate the final PDF.")
 
 # -----------------------------
-# Fixed file path (cloud safe)
+# Upload fixed file (large file)
 # -----------------------------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FIXED_FILE_PATH = os.path.join(BASE_DIR, "fixed_file.xlsx")
-
+fixed_file = st.file_uploader(
+    "Upload fixed master file (upload only when it changes)",
+    type=["xlsx", "csv"],
+    key="fixed"
+)
 
 # -----------------------------
 # Upload weekly file
 # -----------------------------
 weekly_file = st.file_uploader(
     "Upload weekly file",
-    type=["xlsx", "csv"]
+    type=["xlsx", "csv"],
+    key="weekly"
 )
 
 generate = st.button("Generate PDF")
@@ -42,22 +41,29 @@ generate = st.button("Generate PDF")
 
 if generate:
 
+    if fixed_file is None:
+        st.error("Please upload the fixed master file")
+        st.stop()
+
     if weekly_file is None:
-        st.error("Please upload weekly file")
+        st.error("Please upload the weekly file")
         st.stop()
 
     # -----------------------------
-    # Load fixed file
+    # Read fixed file
     # -----------------------------
     try:
-        fixed_df = pd.read_excel(FIXED_FILE_PATH)
+        if fixed_file.name.lower().endswith(".csv"):
+            fixed_df = pd.read_csv(fixed_file)
+        else:
+            fixed_df = pd.read_excel(fixed_file)
     except Exception as e:
-        st.error("Unable to read fixed_file.xlsx")
+        st.error("Unable to read fixed master file")
         st.exception(e)
         st.stop()
 
     # -----------------------------
-    # Load weekly file
+    # Read weekly file
     # -----------------------------
     try:
         if weekly_file.name.lower().endswith(".csv"):
@@ -65,7 +71,7 @@ if generate:
         else:
             weekly_df = pd.read_excel(weekly_file)
     except Exception as e:
-        st.error("Unable to read uploaded file")
+        st.error("Unable to read weekly file")
         st.exception(e)
         st.stop()
 
@@ -108,6 +114,7 @@ if generate:
     elements.append(title)
     elements.append(Spacer(1, 12))
 
+    # convert everything to string for reportlab safety
     table_data = [list(final_df.columns)] + final_df.astype(str).values.tolist()
 
     table = Table(table_data, repeatRows=1)
