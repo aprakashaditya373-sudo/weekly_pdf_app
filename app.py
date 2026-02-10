@@ -152,7 +152,7 @@ if generate:
     table1 = Table(table1_data, repeatRows=1)
 
     table1.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.darkgoldenrod),   # header bg
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f1c232")),   # header bg
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),           # header text
         ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
