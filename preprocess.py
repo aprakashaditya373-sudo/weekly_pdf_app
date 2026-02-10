@@ -4,7 +4,7 @@ import pandas as pd
 
 
 def run_preprocessing(fixed_df: pd.DataFrame,
-                       weekly_df: pd.DataFrame) -> pd.DataFrame:
+                       weekly_df: pd.DataFrame):
 
     # ------------------------------------------------
     # Validate columns
@@ -19,9 +19,9 @@ def run_preprocessing(fixed_df: pd.DataFrame,
     df["CMLEVEL"] = df["CMLEVEL"].astype(str).str.strip()
     df["ROLE"] = df["ROLE"].astype(str).str.strip()
 
-    # ============================================================
-    # 1) PAGE–1 : Committees table (only CMLEVEL)
-    # ============================================================
+    # ==========================================================
+    # TABLE 1 – Committees (page 1)
+    # ==========================================================
 
     committee_order = [
         "Cluster",
@@ -36,46 +36,37 @@ def run_preprocessing(fixed_df: pd.DataFrame,
         "Assembly"
     ]
 
-    counts = (
-        df["CMLEVEL"]
-        .value_counts()
-        .to_dict()
-    )
+    counts = df["CMLEVEL"].value_counts().to_dict()
 
-    rows = []
-
+    rows_1 = []
     total_strength_sum = 0
 
     for committee in committee_order:
-
         total_strength = counts.get(committee, 0)
         total_strength_sum += total_strength
 
-        rows.append({
+        rows_1.append({
             "Committees": committee,
             "Total Strength": total_strength,
             "Registered": "",
             "%": ""
         })
 
-    rows.append({
+    rows_1.append({
         "Committees": "Total CUBS_COMMITTEE",
         "Total Strength": total_strength_sum,
         "Registered": "",
         "%": ""
     })
 
-    # blank row between tables
-    rows.append({
-        "Committees": "",
-        "Total Strength": "",
-        "Registered": "",
-        "%": ""
-    })
+    table_1 = pd.DataFrame(
+        rows_1,
+        columns=["Committees", "Total Strength", "Registered", "%"]
+    )
 
-    # ============================================================
-    # 2) PAGE–2 & 3 : CMLEVEL + ROLE table
-    # ============================================================
+    # ==========================================================
+    # TABLE 2 – CM LEVEL ROLE (page 2 & 3)
+    # ==========================================================
 
     ordered_rows = [
         ("Cluster", "Convenor"),
@@ -149,20 +140,26 @@ def run_preprocessing(fixed_df: pd.DataFrame,
         .to_dict()
     )
 
-    for cmlevel, role in ordered_rows:
+    rows_2 = []
 
+    for cmlevel, role in ordered_rows:
         total_members = grouped_counts.get((cmlevel, role), 0)
 
-        rows.append({
-            "Committees": f"{cmlevel} {role}",
-            "Total Strength": total_members,
+        rows_2.append({
+            "CM LEVEL ROLE": f"{cmlevel} {role}",
+            "Total Cadre Members": total_members,
             "Registered": "",
-            "%": ""
+            "% Registered": ""
         })
 
-    final_df = pd.DataFrame(
-        rows,
-        columns=["Committees", "Total Strength", "Registered", "%"]
+    table_2 = pd.DataFrame(
+        rows_2,
+        columns=[
+            "CM LEVEL ROLE",
+            "Total Cadre Members",
+            "Registered",
+            "% Registered"
+        ]
     )
 
-    return final_df
+    return table_1, table_2
