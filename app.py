@@ -122,7 +122,7 @@ if generate:
     elements = []
 
     # -----------------------------
-    # Centered title  (ONLY CHANGE)
+    # Centered title
     # -----------------------------
     center_title_style = ParagraphStyle(
         name="CenterTitle",
@@ -138,6 +138,101 @@ if generate:
     elements.append(title)
     elements.append(Spacer(1, 12))
 
+    # =========================================================
+    # SUMMARY BLOCKS (as in your image)
+    # =========================================================
+
+    # Total members registered (weekly rows)
+    total_members_registered = len(weekly_df)
+
+    # Registered users with no MID
+    registered_no_mid = weekly_df["mid"].isna().sum()
+
+    # Registered users with MID mapped
+    registered_with_mid_mapped = int(
+        table1_df.loc[
+            table1_df["Committees"] == "Total CUBS_COMMITTEE",
+            "Registered"
+        ].values[0]
+    )
+
+    # Normalize weekly MID exactly same as preprocessing
+    def _norm_mid_local(x):
+        if pd.isna(x):
+            return None
+
+        if isinstance(x, float):
+            x = str(int(x))
+        else:
+            x = str(x).strip()
+
+        if x.startswith("#"):
+            x = x[1:]
+
+        x = "".join(c for c in x if c.isdigit())
+
+        if len(x) == 0:
+            return None
+
+        if len(x) < 8:
+            x = x.zfill(8)
+
+        return "#" + x
+
+    weekly_mid_norm = set(
+        weekly_df["mid"].apply(_norm_mid_local).dropna()
+    )
+
+    tmp_fixed = fixed_df.copy()
+    tmp_fixed["MIMD"] = tmp_fixed["MIMD"].astype(str).str.strip()
+
+    tmp_fixed["is_registered"] = tmp_fixed["MIMD"].isin(weekly_mid_norm)
+
+    # Party Functionaries / General Users
+    party_functionaries = tmp_fixed.loc[
+        (tmp_fixed["is_registered"]) &
+        (tmp_fixed["CMTYPE"].astype(str).str.strip().str.lower() == "party functionaries")
+    ].shape[0]
+
+    general_users = tmp_fixed.loc[
+        (tmp_fixed["is_registered"]) &
+        (tmp_fixed["CMTYPE"].astype(str).str.strip().str.lower() != "party functionaries")
+    ].shape[0]
+
+    # ---- first small box ----
+    summary1_data = [
+        ["Total Members Registered", f"{total_members_registered}"],
+        ["Registered Users with no MID", f"{registered_no_mid}"],
+    ]
+
+    summary1 = Table(summary1_data, colWidths=[260, 120])
+
+    summary1.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 1, colors.black),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+
+    elements.append(summary1)
+    elements.append(Spacer(1, 18))
+
+    # ---- second small box ----
+    summary2_data = [
+        [f"Registered Users with MID Mapped - {registered_with_mid_mapped}", ""],
+        ["Party Functionaries", f"{party_functionaries}"],
+        ["General Users", f"{general_users}"],
+    ]
+
+    summary2 = Table(summary2_data, colWidths=[260, 120])
+
+    summary2.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 1, colors.black),
+        ("SPAN", (0, 0), (-1, 0)),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+
+    elements.append(summary2)
+    elements.append(Spacer(1, 22))
+
     # ==================================================
     # TABLE 1
     # ==================================================
@@ -152,8 +247,8 @@ if generate:
     table1 = Table(table1_data, repeatRows=1)
 
     table1.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f1c232")),   # header bg
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),           # header text
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f1c232")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
         ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
@@ -178,8 +273,8 @@ if generate:
     table2 = Table(table2_data, repeatRows=1)
 
     table2.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f1c232")),   # header bg
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),           # header text
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f1c232")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
         ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
