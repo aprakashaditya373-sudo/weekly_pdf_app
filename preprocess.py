@@ -22,15 +22,16 @@ def run_preprocessing(fixed_df: pd.DataFrame,
         raise ValueError("mid column not found in weekly file")
 
     # ------------------------------------------------
-    # Helper : normalize MID / MIMD
+    # Normalize ONLY weekly mid
     # ------------------------------------------------
-    def normalize_mid(x):
+    def normalize_weekly_mid(x):
+
         if pd.isna(x):
             return None
 
         x = str(x).strip()
 
-        # remove existing #
+        # remove #
         if x.startswith("#"):
             x = x[1:]
 
@@ -40,35 +41,34 @@ def run_preprocessing(fixed_df: pd.DataFrame,
         if len(x) == 0:
             return None
 
-        # pad with zeros in front to make at least 8 digits
+        # MIMD format is 9 length -> '#' + 8 digits
+        # so make digits length = 8
         if len(x) < 8:
             x = x.zfill(8)
 
-        # finally add #
         return "#" + x
 
     # ------------------------------------------------
-    # Prepare fixed file
+    # Prepare fixed file (NO normalization on MIMD)
     # ------------------------------------------------
     df = fixed_df.copy()
 
     df["CMLEVEL"] = df["CMLEVEL"].astype(str).str.strip()
     df["ROLE"] = df["ROLE"].astype(str).str.strip()
-
-    df["MIMD_norm"] = df["MIMD"]
+    df["MIMD"] = df["MIMD"].astype(str).str.strip()
 
     # ------------------------------------------------
-    # Prepare weekly file
+    # Prepare weekly file (ONLY mid normalized)
     # ------------------------------------------------
     weekly = weekly_df.copy()
-    weekly["mid_norm"] = weekly["mid"].apply(normalize_mid)
+    weekly["mid_norm"] = weekly["mid"].apply(normalize_weekly_mid)
 
     registered_mids = set(weekly["mid_norm"].dropna())
 
     # ------------------------------------------------
-    # Mark registered rows in fixed file
+    # Registered flag (match with fixed MIMD AS-IS)
     # ------------------------------------------------
-    df["is_registered"] = df["MIMD_norm"].isin(registered_mids)
+    df["is_registered"] = df["MIMD"].isin(registered_mids)
 
     # ==========================================================
     # TABLE 1 – Committees (page 1)
