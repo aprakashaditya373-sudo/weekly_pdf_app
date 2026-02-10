@@ -24,12 +24,18 @@ def run_preprocessing(fixed_df: pd.DataFrame,
     # ------------------------------------------------
     # Normalize ONLY weekly mid
     # ------------------------------------------------
+
     def normalize_weekly_mid(x):
 
         if pd.isna(x):
             return None
 
-        x = str(x).strip()
+        # ---- FIX: handle float mids safely ----
+        # Example: 12345678.0  ->  "12345678"
+        if isinstance(x, float):
+            x = str(int(x))
+        else:
+            x = str(x).strip()
 
         # remove #
         if x.startswith("#"):
