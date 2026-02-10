@@ -156,7 +156,8 @@ def run_preprocessing(fixed_df: pd.DataFrame,
     table_2 = pd.DataFrame(
         rows_2,
         columns=[
-            "CM LEVEL ROLE",
+            "CM LEVEL",
+            "ROLE",
             "Total Cadre Members",
             "Registered",
             "% Registered"
