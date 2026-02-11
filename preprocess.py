@@ -26,7 +26,6 @@ def run_preprocessing(fixed_df: pd.DataFrame,
         if pd.isna(x):
             return None
 
-        # important fix for float mids
         if isinstance(x, float):
             x = str(int(x))
         else:
@@ -40,7 +39,6 @@ def run_preprocessing(fixed_df: pd.DataFrame,
         if len(x) == 0:
             return None
 
-        # MIMD format is # + 8 digits
         if len(x) < 8:
             x = x.zfill(8)
 
@@ -64,9 +62,46 @@ def run_preprocessing(fixed_df: pd.DataFrame,
     registered_mids = set(weekly["mid_norm"].dropna())
 
     # ------------------------------------------------
-    # Registered flag
+    # FIRST LEVEL : MID mapping
     # ------------------------------------------------
-    df["is_registered"] = df["MIMD"].isin(registered_mids)
+    df["is_registered_mid"] = df["MIMD"].isin(registered_mids)
+
+    # ------------------------------------------------
+    # SECOND LEVEL : mobile number mapping
+    # (only for weekly users who do NOT have MID)
+    # ------------------------------------------------
+
+    # safety: work with strings
+    weekly_no_mid = weekly[weekly["mid_norm"].isna()].copy()
+
+    # normalize weekly phone numbers
+    weekly_no_mid["phone_norm"] = (
+        weekly_no_mid["Phone_number"]
+        .astype(str)
+        .str.replace(r"\D", "", regex=True)
+        .str.strip()
+    )
+
+    registered_phones = set(
+        weekly_no_mid["phone_norm"]
+        .replace("", pd.NA)
+        .dropna()
+    )
+
+    # normalize fixed file phone numbers
+    df["phone_norm"] = (
+        df["MOBILE NO"]
+        .astype(str)
+        .str.replace(r"\D", "", regex=True)
+        .str.strip()
+    )
+
+    df["is_registered_phone"] = df["phone_norm"].isin(registered_phones)
+
+    # ------------------------------------------------
+    # FINAL registered flag
+    # ------------------------------------------------
+    df["is_registered"] = df["is_registered_mid"] | df["is_registered_phone"]
 
     # ==========================================================
     # TABLE 1 – Committees
