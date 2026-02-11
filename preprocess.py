@@ -3,8 +3,12 @@
 import pandas as pd
 
 
-def run_preprocessing(fixed_df: pd.DataFrame,
-                       weekly_df: pd.DataFrame):
+def run_preprocessing(
+        fixed_df: pd.DataFrame,
+        weekly_df: pd.DataFrame,
+        kss1_df: pd.DataFrame,
+        kss2_df: pd.DataFrame
+):
 
     if "CMLEVEL" not in fixed_df.columns:
         raise ValueError("CMLEVEL column not found in fixed file")
@@ -45,7 +49,7 @@ def run_preprocessing(fixed_df: pd.DataFrame,
         return "#" + x
 
     # ------------------------------------------------
-    # Prepare fixed file (MIMD as-is)
+    # Prepare fixed file
     # ------------------------------------------------
     df = fixed_df.copy()
 
@@ -71,10 +75,8 @@ def run_preprocessing(fixed_df: pd.DataFrame,
     # (only for weekly users who do NOT have MID)
     # ------------------------------------------------
 
-    # safety: work with strings
     weekly_no_mid = weekly[weekly["mid_norm"].isna()].copy()
 
-    # normalize weekly phone numbers
     weekly_no_mid["phone_norm"] = (
         weekly_no_mid["Phone_number"]
         .astype(str)
@@ -96,7 +98,52 @@ def run_preprocessing(fixed_df: pd.DataFrame,
         .str.strip()
     )
 
-    df["is_registered_phone"] = df["phone_norm"].isin(registered_phones)
+    # ------------------------------
+    # KSS_1 and KSS_2 phone numbers
+    # ------------------------------
+    if "Mobile No" not in kss1_df.columns:
+        raise ValueError("Mobile No column not found in KSS_1 sheet")
+
+    if "Mobile No" not in kss2_df.columns:
+        raise ValueError("Mobile No column not found in KSS_2 sheet")
+
+    kss1_phones = (
+        kss1_df["Mobile No"]
+        .astype(str)
+        .str.replace(r"\D", "", regex=True)
+        .str.strip()
+    )
+
+    kss2_phones = (
+        kss2_df["Mobile No"]
+        .astype(str)
+        .str.replace(r"\D", "", regex=True)
+        .str.strip()
+    )
+
+    kss_phone_set = set(
+        pd.concat([kss1_phones, kss2_phones])
+        .replace("", pd.NA)
+        .dropna()
+    )
+
+    # ------------------------------------------------
+    # phone match only for weekly users without MID
+    # and match can come from
+    #   - fixed MOBILE NO
+    #   - KSS_1 Mobile No
+    #   - KSS_2 Mobile No
+    # ------------------------------------------------
+    df["is_registered_phone"] = (
+        df["phone_norm"].isin(registered_phones)
+        &
+        (
+            df["phone_norm"].isin(
+                set(df["phone_norm"].replace("", pd.NA).dropna())
+                | kss_phone_set
+            )
+        )
+    )
 
     # ------------------------------------------------
     # FINAL registered flag
