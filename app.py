@@ -58,15 +58,21 @@ if generate:
         st.stop()
 
     # -----------------------------
-    # Read fixed file
+    # Read fixed file  + KSS sheets
     # -----------------------------
     try:
         if fixed_file.name.lower().endswith(".csv"):
             fixed_df = pd.read_csv(fixed_file)
+            kss1_df = pd.DataFrame()
+            kss2_df = pd.DataFrame()
         else:
-            fixed_df = pd.read_excel(fixed_file)
+            xls = pd.ExcelFile(fixed_file)
+            fixed_df = pd.read_excel(xls, sheet_name=0)
+            kss1_df = pd.read_excel(xls, sheet_name="KSS_1")
+            kss2_df = pd.read_excel(xls, sheet_name="KSS_2")
+
     except Exception as e:
-        st.error("Unable to read fixed master file")
+        st.error("Unable to read fixed master file / KSS sheets")
         st.exception(e)
         st.stop()
 
@@ -84,10 +90,15 @@ if generate:
         st.stop()
 
     # -----------------------------
-    # Preprocessing
+    # Preprocessing  (UPDATED)
     # -----------------------------
     try:
-        table1_df, table2_df = run_preprocessing(fixed_df, weekly_df)
+        table1_df, table2_df = run_preprocessing(
+            fixed_df,
+            weekly_df,
+            kss1_df,
+            kss2_df
+        )
     except Exception as e:
         st.error("Error during preprocessing")
         st.exception(e)
@@ -139,48 +150,58 @@ if generate:
     elements.append(Spacer(1, 12))
 
     # =========================================================
-    # SUMMARY BLOCKS (as in your image)
+    # SUMMARY BLOCKS
     # =========================================================
 
-    # Total members registered (weekly rows)
     total_members_registered = len(weekly_df)
 
-    # Registered users with no MID
-    # registered_no_mid = weekly_df["mid"].isna().sum()
-
-    # Registered users with no MID (after 2nd level mobile mapping)
+    # -------- updated no MID logic (fixed + KSS phones) --------
 
     weekly_no_mid = weekly_df[weekly_df["mid"].isna()].copy()
-    
-    # normalize weekly phone numbers
+
     weekly_no_mid["phone_norm"] = (
         weekly_no_mid["Phone_number"]
         .astype(str)
         .str.replace(r"\D", "", regex=True)
         .str.strip()
     )
-    
-    # normalize fixed file phone numbers
-    fixed_phone_set = set(
+
+    fixed_phones = (
         fixed_df["MOBILE NO"]
         .astype(str)
         .str.replace(r"\D", "", regex=True)
         .str.strip()
+    )
+
+    kss1_phones = (
+        kss1_df["Mobile No"]
+        .astype(str)
+        .str.replace(r"\D", "", regex=True)
+        .str.strip()
+    )
+
+    kss2_phones = (
+        kss2_df["Mobile No"]
+        .astype(str)
+        .str.replace(r"\D", "", regex=True)
+        .str.strip()
+    )
+
+    fixed_phone_set = set(
+        pd.concat([fixed_phones, kss1_phones, kss2_phones])
         .replace("", pd.NA)
         .dropna()
     )
-    
-    # how many no-MID users got mapped by phone
+
     no_mid_mapped_by_phone = weekly_no_mid["phone_norm"].isin(fixed_phone_set).sum()
-    
-    # final count: users who still truly have no MID and no mobile match
+
     registered_no_mid = weekly_df["mid"].isna().sum() - no_mid_mapped_by_phone
 
+    # -------------------------------------------------
 
-    # Registered users with MID mapped
     registered_with_mid_mapped = total_members_registered - registered_no_mid
 
-    # Normalize weekly MID exactly same as preprocessing
+    # ---------------- MID normalisation ----------------
     def _norm_mid_local(x):
         if pd.isna(x):
             return None
@@ -212,7 +233,7 @@ if generate:
 
     tmp_fixed["is_registered"] = tmp_fixed["MIMD"].isin(weekly_mid_norm)
 
-    # Party Functionaries / General Users
+    # Party Functionaries / General Users (kept as you had)
     party_functionaries = tmp_fixed.loc[
         (tmp_fixed["is_registered"]) &
         (tmp_fixed["CMTYPE"].astype(str).str.strip().str.lower() == "party functionaries")
@@ -281,7 +302,6 @@ if generate:
 
     elements.append(table1)
 
-    # new page
     elements.append(PageBreak())
 
     # ==================================================
