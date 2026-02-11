@@ -146,7 +146,36 @@ if generate:
     total_members_registered = len(weekly_df)
 
     # Registered users with no MID
-    registered_no_mid = weekly_df["mid"].isna().sum()
+    # registered_no_mid = weekly_df["mid"].isna().sum()
+
+    # Registered users with no MID (after 2nd level mobile mapping)
+
+    weekly_no_mid = weekly_df[weekly_df["mid"].isna()].copy()
+    
+    # normalize weekly phone numbers
+    weekly_no_mid["phone_norm"] = (
+        weekly_no_mid["Phone_number"]
+        .astype(str)
+        .str.replace(r"\D", "", regex=True)
+        .str.strip()
+    )
+    
+    # normalize fixed file phone numbers
+    fixed_phone_set = set(
+        fixed_df["MOBILE NO"]
+        .astype(str)
+        .str.replace(r"\D", "", regex=True)
+        .str.strip()
+        .replace("", pd.NA)
+        .dropna()
+    )
+    
+    # how many no-MID users got mapped by phone
+    no_mid_mapped_by_phone = weekly_no_mid["phone_norm"].isin(fixed_phone_set).sum()
+    
+    # final count: users who still truly have no MID and no mobile match
+    registered_no_mid = weekly_df["mid"].isna().sum() - no_mid_mapped_by_phone
+
 
     # Registered users with MID mapped
     registered_with_mid_mapped = total_members_registered - registered_no_mid
@@ -246,6 +275,7 @@ if generate:
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
         ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
     ]))
 
