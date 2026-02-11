@@ -68,8 +68,8 @@ if generate:
         else:
             xls = pd.ExcelFile(fixed_file)
             fixed_df = pd.read_excel(xls, sheet_name=0)
-            kss1_df = pd.read_excel(xls, sheet_name=2)
-            kss2_df = pd.read_excel(xls, sheet_name=3)
+            kss1_df = pd.read_excel(xls, sheet_name=1)
+            kss2_df = pd.read_excel(xls, sheet_name=2)
 
     except Exception as e:
         st.error("Unable to read fixed master file / KSS sheets")
