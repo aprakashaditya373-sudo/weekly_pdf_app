@@ -67,7 +67,7 @@ if generate:
             kss2_df = pd.DataFrame()
         else:
             xls = pd.ExcelFile(fixed_file)
-            fixed_df = pd.read_excel(xls, sheet_name=CUBS_COMMITTEE)
+            fixed_df = pd.read_excel(xls, sheet_name=CUBS)
             kss1_df = pd.read_excel(xls, sheet_name=KSS_1)
             kss2_df = pd.read_excel(xls, sheet_name=KSS_2)
 
